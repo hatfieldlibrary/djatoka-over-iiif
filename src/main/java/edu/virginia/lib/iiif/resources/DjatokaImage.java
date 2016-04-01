@@ -39,7 +39,7 @@ import org.apache.http.impl.client.HttpClients;
 @Path("/")
 public class DjatokaImage {
     
-    private static final String IIIF_SERVER_ROOT = "http://localhost/iiif/";
+    private static final String IIIF_SERVER_ROOT = "http://iiif.lib.virginia.edu/iiif/";
     
     private HttpClient client;
     
