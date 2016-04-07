@@ -1,8 +1,10 @@
 package edu.virginia.lib.iiif.resources;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,10 +56,10 @@ public class DjatokaImage {
         return getDjatokaMetadata(getIIIFMetadata(getPidFromURL(url)));
     }
     
-    JsonObject getDjatokaMetadata(JsonObject iiifMetadata) {
+    JsonObject getDjatokaMetadata(JsonObject iiifMetadata) throws UnsupportedEncodingException {
         final JsonObjectBuilder builder = Json.createObjectBuilder();
         builder.add("identifier", iiifMetadata.getString("@id"));
-        builder.add("imagefile", "doesn't matter");
+        builder.add("imagefile", "/this/is/a/fake/path/to/spoof/djatoka/" + URLEncoder.encode(iiifMetadata.getString("@id"), "UTF-8"));
         builder.add("width", String.valueOf(iiifMetadata.getInt("width")));
         builder.add("height", String.valueOf(iiifMetadata.getInt("height")));
         final int levelCount = iiifMetadata.getJsonArray("tiles").getJsonObject(0).getJsonArray("scaleFactors").size() - 1;
@@ -81,8 +83,16 @@ public class DjatokaImage {
 
         // Support for just a scaled full image
         if ((region == null || "".equals(region)) && (scaleParam != null && !"".equals(scaleParam))) {
-            final String url = IIIF_SERVER_ROOT + pid + "/full/!" + (scaleParam.indexOf(',') != -1 ? scaleParam : scaleParam + "," + scaleParam) + "/0/default.jpg";
-            return Response.temporaryRedirect(new URI(url)).build();
+            Pattern percent = Pattern.compile("(\\d*\\.\\d+)");
+            Matcher m = percent.matcher(scaleParam);
+            if (m.matches()) {
+                final String url = IIIF_SERVER_ROOT + pid + "/full/pct:" + (100f * Float.parseFloat(m.group(1))) + "," + (100f * Float.parseFloat(m.group(1))) + "/0/default.jpg";
+                return Response.temporaryRedirect(new URI(url)).build();
+                
+            } else {
+                final String url = IIIF_SERVER_ROOT + pid + "/full/!" + (scaleParam.indexOf(',') != -1 ? scaleParam : scaleParam + "," + scaleParam) + "/0/default.jpg";
+                return Response.temporaryRedirect(new URI(url)).build();
+            }
         }
         
         JsonObject iiifMetadata = getIIIFMetadata(pid);
