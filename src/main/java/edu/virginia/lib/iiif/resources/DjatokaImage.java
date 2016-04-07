@@ -60,7 +60,7 @@ public class DjatokaImage {
         builder.add("imagefile", "doesn't matter");
         builder.add("width", String.valueOf(iiifMetadata.getInt("width")));
         builder.add("height", String.valueOf(iiifMetadata.getInt("height")));
-        final int levelCount = iiifMetadata.getJsonArray("tiles").getJsonObject(0).getJsonArray("scaleFactors").size();
+        final int levelCount = iiifMetadata.getJsonArray("tiles").getJsonObject(0).getJsonArray("scaleFactors").size() - 1;
         builder.add("dwtLevels", String.valueOf(levelCount));
         builder.add("levels", String.valueOf(levelCount));
         builder.add("compositingLayerCount", "1");
@@ -81,7 +81,7 @@ public class DjatokaImage {
 
         // Support for just a scaled full image
         if ((region == null || "".equals(region)) && (scaleParam != null && !"".equals(scaleParam))) {
-            final String url = IIIF_SERVER_ROOT + pid + "/full/!" + scaleParam + "/0/default.jpg";
+            final String url = IIIF_SERVER_ROOT + pid + "/full/!" + (scaleParam.indexOf(',') != -1 ? scaleParam : scaleParam + "," + scaleParam) + "/0/default.jpg";
             return Response.temporaryRedirect(new URI(url)).build();
         }
         
@@ -92,10 +92,13 @@ public class DjatokaImage {
         }
         int scale = scaleFactor.getInt(scaleFactor.size() - (Integer.valueOf(level) +1));
         
-        final String[] yxhw = region.split(",");
-        final String iiifRegion = scale(yxhw[1], scale) + "," + scale(yxhw[0], scale) + "," + scale(yxhw[3], scale) + "," + scale(yxhw[2], scale);
+        String iiifRegion = "full";
+        if (region != null && region.indexOf(',') != -1) {
+            final String[] yxhw = region.split(",");
+            iiifRegion = yxhw[1] + "," + yxhw[0] + "," + scale(yxhw[3], scale) + "," + scale(yxhw[2], scale);
+        }
         
-        final String url = IIIF_SERVER_ROOT + pid + "/" + iiifRegion + "/pct:" + Math.round(100 / scale) + "/0/default.jpg";
+        final String url = IIIF_SERVER_ROOT + pid + "/" + iiifRegion + "/pct:" + (100f / (float) scale) + "/0/default.jpg";
         return Response.temporaryRedirect(new URI(url)).build();
     }
     
